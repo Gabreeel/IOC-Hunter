@@ -1,23 +1,21 @@
 import re
 import ipaddress
+import argparse
 
-caminho_arquivo = input("Digite o caminho do arquivo: ")
+parser = argparse.ArgumentParser(prog="ioc-hunter", description="Extrair endereços IPv4, hashes SHA-256 e CVEs de um arquivo de texto.")
+parser.add_argument("log_file", help="Caminho do arquivo de log a ser analisado.")
+args = parser.parse_args()
 
-try:
-    with open(caminho_arquivo, 'r', encoding="utf-8") as arquivo_aberto:
-        conteudo_arquivo = arquivo_aberto.read()
-        caracteres = len(conteudo_arquivo)
+caminho_arquivo = args.log_file
 
-    print(f"O arquivo {caminho_arquivo} possui {caracteres} caracteres.\n")
-
-    # Trecho relacionado a endereços IPv4
-
-    ipv4_candidatos = re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', conteudo_arquivo)
-
+def extrair_ipv4(conteudo):
+        # Extração de possíveis endereços IPv4 usando regex
+    ipv4_candidatos = re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', conteudo)
+    
     ipv4_lista = []
     ipv4_falsos_candidatos = []
 
-    # Validando endereços IPv4 encontrados
+        # Validação dos endereços IPv4 encontrados
     for ipv4 in ipv4_candidatos:
         try:
             ipaddress.IPv4Address(ipv4)
@@ -25,28 +23,70 @@ try:
         except ipaddress.AddressValueError:
             ipv4_falsos_candidatos.append(ipv4)
 
-    quantidade_ipv4 = len(ipv4_lista)
-    quantidade_falsos_candidatos = len(ipv4_falsos_candidatos)
+    return ipv4_lista, ipv4_falsos_candidatos
 
-    for ipv4 in ipv4_lista:
-        print(f"Endereço IPv4 encontrado: {ipv4}")
+def extrair_sha256(conteudo):
+    # Extração de hashes SHA-256 usando regex
+    sha256_encontrados = re.findall(r'\b[a-fA-F0-9]{64}\b', conteudo)
+    return sha256_encontrados
 
-    print(f"\nQuantidade de endereços IPv4 encontrados: {quantidade_ipv4}")
+def extrair_cves(conteudo):
+    # Extração de CVEs usando regex
+    cves = re.findall(r'\bCVE-\d{4}-\d{4,}\b', conteudo, re.IGNORECASE)
+    cves = [cve.upper() for cve in cves]
+    return cves
 
-    for ipv4 in ipv4_falsos_candidatos:
-        print(f"\nEndereço IPv4 inválido encontrado: {ipv4}")
+resultados = {
+    "ipv4": [],
+    "ipv4_falsos_candidatos": [],
+    "sha256": [],
+    "cves": []
+    }
 
-    print(f"\nQuantidade de endereços IPv4 inválidos encontrados: {quantidade_falsos_candidatos}\n")
+def exibir_resultados(resultados):
+    print("Resultados encontrados:\n")
 
-    # Trecho relacionado a SHA-256
+    for ipv4 in resultados['ipv4']:
+        print(f"Endereço IPv4 válido: {ipv4}")
+    quantidade_ipv4 = len(resultados['ipv4'])
+    print(f"\nQuantidade de endereços IPv4 válidos: {quantidade_ipv4}\n")
 
-    sha256_encontrados = re.findall(r'\b[a-fA-F0-9]{64}\b', conteudo_arquivo)
+    for ipv4_falso in resultados['ipv4_falsos_candidatos']:
+        print(f"Falso candidato a IPv4: {ipv4_falso}")
+    quantidade_ipv4_falsos = len(resultados['ipv4_falsos_candidatos'])
+    print(f"\nQuantidade de falsos candidatos a IPv4: {quantidade_ipv4_falsos}\n")
 
-    for sha256 in sha256_encontrados:
+    for sha256 in resultados['sha256']:
         print(f"Hash SHA-256 encontrado: {sha256}")
-
-    quantidade_sha256 = len(sha256_encontrados)
+    quantidade_sha256 = len(resultados['sha256'])
     print(f"\nQuantidade de hashes SHA-256 encontrados: {quantidade_sha256}\n")
 
-except FileNotFoundError:
-    print(f"Erro: O arquivo '{caminho_arquivo}' não foi encontrado.")
+    for cve in resultados['cves']:
+        print(f"CVE encontrado: {cve}")
+    quantidade_cves = len(resultados['cves'])
+    quantidade_cves_unicos = len(set(resultados['cves']))
+    print(f"\nQuantidade de CVEs encontrados: {quantidade_cves}")
+    print(f"Quantidade de CVEs únicos encontrados: {quantidade_cves_unicos}\n")
+
+def main():
+    try:
+        with open(caminho_arquivo, 'r', encoding="utf-8") as arquivo_aberto:
+            conteudo_arquivo = arquivo_aberto.read()
+            caracteres = len(conteudo_arquivo)
+
+        print(f"O arquivo {caminho_arquivo} possui {caracteres} caracteres.\n")
+
+        # Extração e validação de endereços IPv4
+        resultados["ipv4"], resultados["ipv4_falsos_candidatos"] = extrair_ipv4(conteudo_arquivo)
+        resultados["sha256"] = extrair_sha256(conteudo_arquivo)
+        resultados["cves"] = extrair_cves(conteudo_arquivo)
+
+        exibir_resultados(resultados)
+
+    except FileNotFoundError:
+        print(f"Erro: O arquivo '{caminho_arquivo}' não foi encontrado.")
+
+if __name__ == "__main__":
+    main()
+
+
