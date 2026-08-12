@@ -10,11 +10,14 @@ try:
 
     print(f"O arquivo {caminho_arquivo} possui {caracteres} caracteres.\n")
 
+    # Trecho relacionado a endereços IPv4
+
     ipv4_candidatos = re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', conteudo_arquivo)
 
     ipv4_lista = []
     ipv4_falsos_candidatos = []
 
+    # Validando endereços IPv4 encontrados
     for ipv4 in ipv4_candidatos:
         try:
             ipaddress.IPv4Address(ipv4)
@@ -33,7 +36,17 @@ try:
     for ipv4 in ipv4_falsos_candidatos:
         print(f"\nEndereço IPv4 inválido encontrado: {ipv4}")
 
-    print(f"\nQuantidade de endereços IPv4 inválidos encontrados: {quantidade_falsos_candidatos}")
+    print(f"\nQuantidade de endereços IPv4 inválidos encontrados: {quantidade_falsos_candidatos}\n")
+
+    # Trecho relacionado a SHA-256
+
+    sha256_encontrados = re.findall(r'\b[a-fA-F0-9]{64}\b', conteudo_arquivo)
+
+    for sha256 in sha256_encontrados:
+        print(f"Hash SHA-256 encontrado: {sha256}")
+
+    quantidade_sha256 = len(sha256_encontrados)
+    print(f"\nQuantidade de hashes SHA-256 encontrados: {quantidade_sha256}\n")
 
 except FileNotFoundError:
     print(f"Erro: O arquivo '{caminho_arquivo}' não foi encontrado.")

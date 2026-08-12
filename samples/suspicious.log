@@ -8,22 +8,36 @@ Aug 10 14:02:11 server sshd[14201]: Failed password for invalid user admin from 
 Aug 10 14:02:15 server sshd[14205]: Failed password for root from 198.51.100.42 port 49158 ssh2
 Aug 10 14:02:18 server sshd[14210]: Accepted publickey for ubuntu from 172.16.254.1 port 52110 ssh2
 
-# --- JSON Logs (Application/Structured) ---
+# --- Endpoint / EDR Detection Logs (SHA-256 + IPv4) ---
+Aug 10 14:05:22 edr-agent[8812]: Process creation detected: /tmp/suspicious_loader.sh (SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855) initiated connection to 198.51.100.99:443
+Aug 10 14:06:01 edr-agent[8812]: File download complete from 203.0.113.88 | File: update.exe | Hash: 2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae
+Aug 10 14:07:30 edr-agent[8815]: Malicious payload blocked: SHA256=11a5a54b391307b227c4f4a3fb3510ec1f215f762dd59955e8c13f9f74051a8f dropped by IP 192.168.1.100
+
+# --- JSON Logs (Application / Threat Intelligence Feed) ---
 {"timestamp": "2026-08-10T14:10:00Z", "level": "WARN", "service": "auth-service", "client_ip": "104.28.14.88", "message": "Rate limit exceeded"}
 {"timestamp": "2026-08-10T14:10:05Z", "level": "INFO", "service": "payment-gateway", "forwarded_for": ["198.51.100.7", "172.16.0.50"], "status": "success"}
+{"timestamp": "2026-08-10T14:12:19Z", "level": "CRITICAL", "indicator_type": "malware_sample", "sha256": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e", "c2_ip": "198.51.100.200"}
 
-# --- Edge Cases & Noise (Distractions, Port Numbers, IPv6) ---
+# --- Edge Cases, Noise & False Positives ---
 # Valid IPv4 with port:
 Connection established to 192.0.2.1:8080 from remote end.
 
-# IPv6 addresses (Should be ignored by an IPv4-only parser):
+# SHA-256 em caixa alta (Uppercase - teste de case sensitivity se sua regex aceitar A-F):
+ALERT: Threat actor dumped tool with SHA256: 4F8B708230D8E9F52AE9A006132D372863B8B9B16E4D1A258C28A14619C4A732
+
+# Outros tipos de Hashes (NÃO são SHA-256 e DEVEM ser ignorados):
+# MD5 (32 caracteres): 5d41402abc4b2a76b9719d911017c592
+# SHA-1 (40 caracteres): da39a3ee5e6b4b0d3255bfef95601890afd80709
+# Hash truncated/invalid (63 chars): e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85
+
+# IPv6 (Ignorar se o foco for IPv4):
 2001:0db8:85a3:0000:0000:8a2e:0370:7334 - - [10/Aug/2026:14:15:00 +0000] "GET / HTTP/1.1" 200
 fe80::1ff:fe23:4567%eth0 connected.
 
-# Invalid IP numbers / False Positives (Should fail validation):
+# IPs Inválidos / Números de versão (Devem falhar na validação):
 Error code 256.300.12.1 detected in subsystem.
 Version number 1.2.3.456 is not a valid IPv4.
 Local loopback test: 127.0.0.1 and broadcast 255.255.255.255.
 
-# Multiple IPs on one line:
+# Múltiplos IPs em uma linha:
 Proxy chain: 203.0.113.5 -> 10.0.1.150 -> 192.168.0.1
